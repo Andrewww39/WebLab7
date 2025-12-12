@@ -1,78 +1,70 @@
-﻿const work = document.getElementById('work');
-const anim = document.getElementById('anim');
-const ball1 = document.getElementById('ballBlue');
-const ball2 = document.getElementById('ballOrange');
-const btnStart = document.getElementById('btnStart');
-const msgBox = document.getElementById('msgBox');
-const btnContainer = document.getElementById('gameBtnContainer');
+﻿let work = document.getElementById('work');
+let anim = document.getElementById('anim');
+let c1 = document.getElementById('c1');
+let c2 = document.getElementById('c2');
+let btnStart = document.getElementById('btnStart');
+let statusMsg = document.getElementById('statusMsg');
 
-let isAnimating = false;
 let animationId;
-let eventId = 0;
-let localStorageData = [];
+let isAnimating = false;
+let eventCount = 0;
+
+let localStorageLogs = [];
 let serverResponses = {};
 
-let b1 = { x: 0, y: 0, dx: 0, dy: 0, r: 10, el: ball1, color: 'Blue' };
-let b2 = { x: 0, y: 0, dx: 0, dy: 0, r: 10, el: ball2, color: 'Orange' };
+let ball1 = { el: c1, x: 0, y: 0, dx: 0, dy: 0, r: 10 };
+let ball2 = { el: c2, x: 0, y: 0, dx: 0, dy: 0, r: 10 };
 
 document.getElementById('btnPlay').onclick = () => {
     work.style.display = 'block';
-    resetPositions();
-    eventId = 0;
-    localStorageData = [];
-    serverResponses = {};
-    document.querySelector('#resultsTable tbody').innerHTML = "";
-    logEvent("Window Opened");
+    resetGame();
 };
 
 document.getElementById('btnClose').onclick = () => {
     stopAnimation();
     work.style.display = 'none';
-    logEvent("Window Closed");
-    showResults();
+    
+    sendBulkDataToServer();
+    
+    renderLogs();
 };
 
 btnStart.onclick = () => {
     if (btnStart.innerText === 'START') {
-        logEvent("Button START clicked");
         startAnimation();
         btnStart.disabled = true;
-        btnStart.style.opacity = "0.5";
+        logEvent("Start button clicked");
     } else {
-        logEvent("Button RELOAD clicked");
-        resetPositions();
+        resetGame();
+        startAnimation();
         btnStart.innerText = 'START';
-        btnStart.disabled = false;
-        btnStart.style.opacity = "1";
+        btnStart.disabled = true;
+        logEvent("Reload button clicked");
     }
 };
 
-function resetPositions() {
+function resetGame() {
     let w = anim.clientWidth;
-    let h = anim.clientHeight;
+    ball1.x = Math.random() * (w - 40) + 10;
+    ball2.x = Math.random() * (w - 40) + 10;
     
-    b1.x = Math.random() * (w - 40) + 10;
-    b2.x = Math.random() * (w - 40) + 10;
+    ball1.y = 10;
+    ball2.y = anim.clientHeight - 30;
     
-    b1.y = 5;
-    b2.y = h - 25;
-    
-    let speed = 2;
-    b1.dx = (Math.random() > 0.5 ? 1 : -1) * speed;
-    b1.dy = speed;
-    b2.dx = (Math.random() > 0.5 ? 1 : -1) * speed;
-    b2.dy = -speed;
+    let speed = 3;
+    ball1.dx = (Math.random() > 0.5 ? 1 : -1) * speed;
+    ball1.dy = speed;
 
-    updateBallView(b1);
-    updateBallView(b2);
+    ball2.dx = (Math.random() > 0.5 ? 1 : -1) * speed;
+    ball2.dy = -speed;
 
-    ball1.style.display = 'block';
-    ball2.style.display = 'block';
-    msgBox.innerText = "Готовий до старту";
+    updateView();
+    c1.style.display = 'block';
+    c2.style.display = 'block';
+    statusMsg.innerText = "";
 }
 
 function startAnimation() {
-    if (isAnimating) return;
     isAnimating = true;
     loop();
 }
@@ -84,116 +76,140 @@ function stopAnimation() {
 
 function loop() {
     if (!isAnimating) return;
-    
-    moveAndCheck(b1);
-    moveAndCheck(b2);
 
-    checkCollisions();
+    moveBall(ball1);
+    moveBall(ball2);
+    checkWallCollision(ball1);
+    checkWallCollision(ball2);
+    checkBallCollision(ball1, ball2);
     checkStopCondition();
 
+    updateView();
     animationId = requestAnimationFrame(loop);
 }
 
-function moveAndCheck(b) {
+function moveBall(b) {
+    b.x += b.dx;
+    b.y += b.dy;
+}
+
+function updateView() {
+    ball1.el.style.left = ball1.x + 'px';
+    ball1.el.style.top = ball1.y + 'px';
+    ball2.el.style.left = ball2.x + 'px';
+    ball2.el.style.top = ball2.y + 'px';
+}
+
+function checkWallCollision(b) {
     let w = anim.clientWidth;
     let h = anim.clientHeight;
     
-    b.x += b.dx;
-    b.y += b.dy;
-    if (b.x <= 0 || b.x + 20 >= w) {
+    if (b.x <= 0 || b.x + b.r * 2 >= w) {
         b.dx *= -1;
-        logEvent(`${b.color} hit wall`);
+        logEvent("Wall collision");
     }
-    if (b.y <= 0 || b.y + 20 >= h) {
+    if (b.y <= 0 || b.y + b.r * 2 >= h) {
         b.dy *= -1;
-        logEvent(`${b.color} hit wall`);
+        logEvent("Wall collision");
     }
-    updateBallView(b);
 }
 
-function updateBallView(b) {
-    b.el.style.left = b.x + 'px';
-    b.el.style.top = b.y + 'px';
-}
+function checkBallCollision(b1, b2) {
+    let dx = b1.x - b2.x;
+    let dy = b1.y - b2.y;
+    let distance = Math.sqrt(dx * dx + dy * dy);
 
-function checkCollisions() {
-    let dx = (b1.x + 10) - (b2.x + 10);
-    let dy = (b1.y + 10) - (b2.y + 10);
-    let distance = Math.sqrt(dx*dx + dy*dy);
-
-    if (distance < 20) {
+    if (distance < b1.r + b2.r) {
         let tempDx = b1.dx; let tempDy = b1.dy;
         b1.dx = b2.dx; b1.dy = b2.dy;
         b2.dx = tempDx; b2.dy = tempDy;
         
-        b1.x += b1.dx * 2; b1.y += b1.dy * 2;
+        b1.x += b1.dx; b1.y += b1.dy;
 
-        logEvent("Collision between balls");
+        logEvent("Balls collision");
     }
 }
 
 function checkStopCondition() {
     let h = anim.clientHeight;
-    let mid = h / 2;
-    
-    let b1Top = (b1.y + 10) < mid;
-    let b2Top = (b2.y + 10) < mid;
+    let center = h / 2;
 
-    if (b1Top === b2Top) {
+    let b1InTop = (ball1.y + 10) < center;
+    let b2InTop = (ball2.y + 10) < center;
+    
+    if ((b1InTop && b2InTop) || (!b1InTop && !b2InTop)) {
         stopAnimation();
-        logEvent("Stop condition: Both in same half");
-        
         btnStart.innerText = "RELOAD";
         btnStart.disabled = false;
-        btnStart.style.opacity = "1";
+        statusMsg.innerText = "Зупинено: Обидві кульки в одній половині!";
+        logEvent("Stop condition met");
     }
 }
 
-function logEvent(text) {
-    eventId++;
-    msgBox.innerText = text;
-
+function logEvent(msg) {
+    eventCount++;
     let now = new Date();
-    let timeStr = now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds() + "." + now.getMilliseconds();
+    let timeString = now.toLocaleTimeString() + '.' + now.getMilliseconds();
     
-    let eventObj = {
-        id: eventId,
-        text: text,
-        clientTime: timeStr,
-        method: 'immediate'
+    sendImmediate(eventCount, msg);
+    
+    let logRecord = {
+        id: eventCount,
+        event: msg,
+        time: timeString
     };
+    localStorageLogs.push(logRecord);
     
-    let lsObj = {...eventObj, method: 'bulk'};
-    localStorageData.push(lsObj);
-    localStorage.setItem('lab7_data', JSON.stringify(localStorageData));
-    
+    localStorage.setItem('lab7_logs', JSON.stringify(localStorageLogs));
+}
+
+function sendImmediate(id, msg) {
     fetch('server_lab7.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(eventObj)
+        body: JSON.stringify({
+            method: 'immediate',
+            id: id,
+            event: msg
+        })
     })
         .then(res => res.json())
         .then(data => {
-            serverResponses[eventObj.id] = data.serverTime;
+            serverResponses[id] = data.serverTime;
         })
-        .catch(err => console.error("Server error"));
+        .catch(err => console.error(err));
 }
 
-function showResults() {
-    let logs = JSON.parse(localStorage.getItem('lab7_data')) || [];
-    let tbody = document.querySelector('#resultsTable tbody');
+function sendBulkDataToServer() {
+    fetch('server_lab7.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            method: 'bulk',
+            data: localStorageLogs
+        })
+    }).then(() => {
+        console.log("Bulk data sent");
+        localStorageLogs = [];
+        localStorage.removeItem('lab7_logs');
+    });
+}
+
+function renderLogs() {
+    let tbody = document.getElementById('logBody');
     tbody.innerHTML = "";
+    
+    let logs = JSON.parse(localStorage.getItem('lab7_logs')) || localStorageLogs;
 
     logs.forEach(log => {
         let tr = document.createElement('tr');
-        
-        let sTime = serverResponses[log.id] || "---";
+        let serverTime = serverResponses[log.id] || "Pending...";
 
         tr.innerHTML = `
             <td>${log.id}</td>
-            <td>${log.text}</td>
-            <td>${log.clientTime}</td>
-            <td>${sTime}</td>
+            <td>${log.event}</td>
+            <td>${log.time}</td>
+            <td>${serverTime}</td>
         `;
         tbody.appendChild(tr);
     });
