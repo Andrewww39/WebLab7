@@ -1,0 +1,148 @@
+﻿body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+
+    grid-template-rows: 
+        minmax(120px, auto)
+        minmax(50px, auto)
+        minmax(200px, auto)
+        minmax(50px, auto)
+        minmax(120px, auto);
+
+    grid-template-areas: 
+        "header header header"
+        "left top top"
+        "left center right"
+        "left bottom right"
+        "footer footer footer";
+    gap: 5px;
+    width: 90%;
+    margin: 20px auto;
+}
+
+.block {
+    padding: 10px;
+    background: #d9eaf7;
+    border: 1px solid #999;
+    text-align: center;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.header {
+    grid-area: header;
+    background-color: #b3d1f0;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+.left   { grid-area: left;   background-color: #f5d5c5; }
+.top    { grid-area: top;    background-color: #d9f0d0; }
+.center { grid-area: center; background-color: #ffffff; }
+.right  { grid-area: right;  background-color: #f5d5c5; }
+.bottom { grid-area: bottom; background-color: #d9f0d0; }
+.footer {
+    grid-area: footer;
+    background-color: #b3d1f0;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+img {
+    width: 100%;
+    height: auto;
+}
+
+.img_logo {
+    width: 50%;
+    height: auto;
+}
+
+.img_center {
+    width: 70%;
+    height: auto;
+}
+
+.img_founders {
+    width: 300px;
+    height: 200px;
+}
+
+.menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.menu a {
+    text-decoration: none;
+    color: #000;
+    font-weight: bold;
+}
+
+.menu a:hover {
+    color: #0078d7;
+}
+
+@media screen and (max-width: 768px) {
+
+    .container {
+        grid-template-columns: 1fr;
+        
+        grid-template-rows: auto;
+        
+        grid-template-areas: 
+            "header"
+            "top"
+            "left"
+            "center"
+            "right"
+            "bottom"
+            "footer";
+
+        width: 95%;
+        margin: 10px auto;
+    }
+    
+    .menu {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .header, .footer {
+        flex-direction: column;
+        height: auto;
+        padding: 20px;
+    }
+    
+    .img_founders, .img_logo {
+        width: 100%;
+        height: auto;
+        max-width: 300px;
+    }
+    
+    p {
+        font-size: 16px;
+        line-height: 1.5;
+    }
+}

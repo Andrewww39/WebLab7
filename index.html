@@ -1,0 +1,60 @@
+﻿<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Lab 7 Animation</title>
+    <link rel="stylesheet" href="style_lab7.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="block header"><h1>Lab 7: Анімація та Сервер</h1></div>
+    <div class="block left">Ліва колонка</div>
+    <div class="block top">Верхній блок</div>
+
+    <div class="block center">
+        <h3>Керування</h3>
+        <button id="btnPlay" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">PLAY (Відкрити Work)</button>
+
+        <div id="resultsArea">
+            <h4>Логи подій (після закриття):</h4>
+            <table id="logTable">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Подія</th>
+                    <th>Час LocalStorage</th>
+                    <th>Час Сервера (Method 1)</th>
+                </tr>
+                </thead>
+                <tbody id="logBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="block right">Права колонка</div>
+    <div class="block bottom">Нижній блок</div>
+    <div class="block footer">Футер</div>
+</div>
+
+<div id="work">
+    <div id="anim">
+        <div class="anim-half texture-top"></div>
+        <div class="anim-half texture-bottom"></div>
+        <div id="c1" class="circle blue"></div>
+        <div id="c2" class="circle orange"></div>
+    </div>
+
+    <div id="controls">
+        <h2>Controls</h2>
+        <p>Керування анімацією:</p>
+        <button id="btnStart" style="padding: 10px; background: green; color: white;">START</button>
+        <button id="btnClose" style="padding: 10px; background: red; color: white; margin-top: 10px;">CLOSE</button>
+
+        <div id="statusMsg" style="margin-top: 20px; color: blue;"></div>
+    </div>
+</div>
+
+<script src="script_lab7.js"></script>
+</body>
+</html>
