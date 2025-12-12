@@ -2,56 +2,72 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <title>Lab 7 Animation</title>
+    <title>СТО Копатич - Lab 7</title>
     <link rel="stylesheet" href="style_lab7.css">
 </head>
 <body>
 
 <div class="container">
-    <div class="block header"><h1>Lab 7: Анімація та Сервер</h1></div>
-    <div class="block left">Ліва колонка</div>
-    <div class="block top">Верхній блок</div>
+    <div class="block header">
+        <h1>СТО Копатич</h1>
+        <p>Сайт з ремонту машин</p>
+    </div>
+
+    <div class="block left">
+        <p>На СТО «Копатич» ми вважаємо, що кожне авто — це частинка родини.</p>
+    </div>
+
+    <div class="block top">
+        <p>Вітаємо у нашому автосервісі!</p>
+    </div>
 
     <div class="block center">
-        <h3>Керування</h3>
-        <button id="btnPlay" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">PLAY (Відкрити Work)</button>
+        <h2>Лабораторна робота №7</h2>
+        <p>Анімація об'єктів та робота з сервером</p>
 
-        <div id="resultsArea">
-            <h4>Логи подій (після закриття):</h4>
-            <table id="logTable">
+        <button id="btnPlay" style="padding: 15px 30px; font-size: 18px; background: #28a745; color: white; border: none; cursor: pointer;">PLAY</button>
+
+        <div class="logs-container">
+            <table id="resultsTable">
                 <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>№</th>
                     <th>Подія</th>
                     <th>Час LocalStorage</th>
-                    <th>Час Сервера (Method 1)</th>
+                    <th>Час Server</th>
                 </tr>
                 </thead>
-                <tbody id="logBody"></tbody>
+                <tbody>
+                <tr><td colspan="4">Натисніть PLAY, проведіть анімацію і натисніть CLOSE</td></tr>
+                </tbody>
             </table>
         </div>
     </div>
 
-    <div class="block right">Права колонка</div>
-    <div class="block bottom">Нижній блок</div>
-    <div class="block footer">Футер</div>
+    <div class="block right">
+        <img src="images/logo.png" alt="logo" style="width: 80%;">
+    </div>
+    <div class="block bottom"><p>Наш девіз...</p></div>
+    <div class="block footer"><h2>Lab 7</h2></div>
 </div>
 
 <div id="work">
-    <div id="anim">
-        <div class="anim-half texture-top"></div>
-        <div class="anim-half texture-bottom"></div>
-        <div id="c1" class="circle blue"></div>
-        <div id="c2" class="circle orange"></div>
+    <div id="controls">
+        <button id="btnClose" style="background: red; color: white; border: none; padding: 5px 15px; cursor: pointer;">CLOSE</button>
+
+        <span id="msgBox">Очікування старту...</span>
     </div>
 
-    <div id="controls">
-        <h2>Controls</h2>
-        <p>Керування анімацією:</p>
-        <button id="btnStart" style="padding: 10px; background: green; color: white;">START</button>
-        <button id="btnClose" style="padding: 10px; background: red; color: white; margin-top: 10px;">CLOSE</button>
+    <div id="anim">
+        <div class="texture-part texture-top"></div>
+        <div class="texture-part texture-bottom"></div>
 
-        <div id="statusMsg" style="margin-top: 20px; color: blue;"></div>
+        <div id="gameBtnContainer" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 20;">
+            <button id="btnStart" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">START</button>
+        </div>
+
+        <div id="ballBlue" class="circle c-blue"></div>
+        <div id="ballOrange" class="circle c-orange"></div>
     </div>
 </div>
 
