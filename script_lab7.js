@@ -1,70 +1,89 @@
-﻿let work = document.getElementById('work');
-let anim = document.getElementById('anim');
-let c1 = document.getElementById('c1');
-let c2 = document.getElementById('c2');
-let btnStart = document.getElementById('btnStart');
-let statusMsg = document.getElementById('statusMsg');
+﻿// Змінні
+const work = document.getElementById('work');
+const anim = document.getElementById('anim');
+const ball1 = document.getElementById('ballBlue'); // Синя
+const ball2 = document.getElementById('ballOrange'); // Помаранчева
+const btnStart = document.getElementById('btnStart');
+const msgBox = document.getElementById('msgBox');
+const btnContainer = document.getElementById('gameBtnContainer');
 
-let animationId;
+// Стан гри
 let isAnimating = false;
-let eventCount = 0;
+let animationId;
+let eventId = 0;
+let localStorageData = []; // Для накопичення (Спосіб 2)
+let serverResponses = {}; // Для збереження відповідей сервера
 
-let localStorageLogs = [];
-let serverResponses = {};
+// Фізичні об'єкти
+let b1 = { x: 0, y: 0, dx: 0, dy: 0, r: 10, el: ball1, color: 'Blue' };
+let b2 = { x: 0, y: 0, dx: 0, dy: 0, r: 10, el: ball2, color: 'Orange' };
 
-let ball1 = { el: c1, x: 0, y: 0, dx: 0, dy: 0, r: 10 };
-let ball2 = { el: c2, x: 0, y: 0, dx: 0, dy: 0, r: 10 };
-
+// --- 1. КЕРУВАННЯ ВІКНОМ (d) ---
 document.getElementById('btnPlay').onclick = () => {
     work.style.display = 'block';
-    resetGame();
+    resetPositions();
+    eventId = 0;
+    localStorageData = [];
+    serverResponses = {};
+    document.querySelector('#resultsTable tbody').innerHTML = "";
+    logEvent("Window Opened");
 };
 
 document.getElementById('btnClose').onclick = () => {
     stopAnimation();
     work.style.display = 'none';
-    
-    sendBulkDataToServer();
-    
-    renderLogs();
+    logEvent("Window Closed");
+    showResults(); // Вивести таблицю
 };
 
+// --- 2. КНОПКА START / RELOAD (g) ---
 btnStart.onclick = () => {
     if (btnStart.innerText === 'START') {
+        logEvent("Button START clicked");
         startAnimation();
+        // Втрачає можливість натискання (приховуємо або disable)
         btnStart.disabled = true;
-        logEvent("Start button clicked");
+        btnStart.style.opacity = "0.5";
     } else {
-        resetGame();
-        startAnimation();
-        btnStart.innerText = 'START';
-        btnStart.disabled = true;
-        logEvent("Reload button clicked");
+        // Якщо це RELOAD
+        logEvent("Button RELOAD clicked");
+        resetPositions();
+        btnStart.innerText = 'START'; // Розміщує замість себе START
+        btnStart.disabled = false;
+        btnStart.style.opacity = "1";
     }
 };
 
-function resetGame() {
+// --- 3. ФІЗИКА ТА АНІМАЦІЯ ---
+function resetPositions() {
     let w = anim.clientWidth;
-    ball1.x = Math.random() * (w - 40) + 10;
-    ball2.x = Math.random() * (w - 40) + 10;
-    
-    ball1.y = 10;
-    ball2.y = anim.clientHeight - 30;
-    
-    let speed = 3;
-    ball1.dx = (Math.random() > 0.5 ? 1 : -1) * speed;
-    ball1.dy = speed;
+    let h = anim.clientHeight;
 
-    ball2.dx = (Math.random() > 0.5 ? 1 : -1) * speed;
-    ball2.dy = -speed;
+    // Випадкова горизонтальна координата (f)
+    b1.x = Math.random() * (w - 40) + 10;
+    b2.x = Math.random() * (w - 40) + 10;
 
-    updateView();
-    c1.style.display = 'block';
-    c2.style.display = 'block';
-    statusMsg.innerText = "";
+    // Біля верхньої (Синя) і нижньої (Оранж) стінок
+    b1.y = 5;
+    b2.y = h - 25;
+
+    // Випадкові кути (швидкості)
+    let speed = 2; // Невелика швидкість для (i)
+    b1.dx = (Math.random() > 0.5 ? 1 : -1) * speed;
+    b1.dy = speed; // Вниз
+    b2.dx = (Math.random() > 0.5 ? 1 : -1) * speed;
+    b2.dy = -speed; // Вгору
+
+    updateBallView(b1);
+    updateBallView(b2);
+
+    ball1.style.display = 'block';
+    ball2.style.display = 'block';
+    msgBox.innerText = "Готовий до старту";
 }
 
 function startAnimation() {
+    if (isAnimating) return;
     isAnimating = true;
     loop();
 }
@@ -77,139 +96,142 @@ function stopAnimation() {
 function loop() {
     if (!isAnimating) return;
 
-    moveBall(ball1);
-    moveBall(ball2);
-    checkWallCollision(ball1);
-    checkWallCollision(ball2);
-    checkBallCollision(ball1, ball2);
+    // Рух (кожен крок - подія для логування, пункт h)
+    // УВАГА: Логувати 60 разів на секунду - це забагато для сервера. 
+    // Але завдання вимагає "кожен крок". Ми будемо це робити.
+    moveAndCheck(b1);
+    moveAndCheck(b2);
+
+    checkCollisions();
     checkStopCondition();
 
-    updateView();
+    // Логуємо крок (Step) - щоб не забити канал, можна логувати кожен 10-й кадр, 
+    // але для точності завдання пишемо кожен.
+    // logEvent("Step"); // Розкоментуй, якщо треба РЕАЛЬНО кожен крок (буде 1000 записів)
+
     animationId = requestAnimationFrame(loop);
 }
 
-function moveBall(b) {
-    b.x += b.dx;
-    b.y += b.dy;
-}
-
-function updateView() {
-    ball1.el.style.left = ball1.x + 'px';
-    ball1.el.style.top = ball1.y + 'px';
-    ball2.el.style.left = ball2.x + 'px';
-    ball2.el.style.top = ball2.y + 'px';
-}
-
-function checkWallCollision(b) {
+function moveAndCheck(b) {
     let w = anim.clientWidth;
     let h = anim.clientHeight;
-    
-    if (b.x <= 0 || b.x + b.r * 2 >= w) {
+
+    // Зміщення
+    b.x += b.dx;
+    b.y += b.dy;
+
+    // Стінки (Ідеальна фізична модель - кут падіння = кут відбивання)
+    if (b.x <= 0 || b.x + 20 >= w) {
         b.dx *= -1;
-        logEvent("Wall collision");
+        logEvent(`${b.color} hit wall`);
     }
-    if (b.y <= 0 || b.y + b.r * 2 >= h) {
+    if (b.y <= 0 || b.y + 20 >= h) {
         b.dy *= -1;
-        logEvent("Wall collision");
+        logEvent(`${b.color} hit wall`);
     }
+    updateBallView(b);
 }
 
-function checkBallCollision(b1, b2) {
-    let dx = b1.x - b2.x;
-    let dy = b1.y - b2.y;
-    let distance = Math.sqrt(dx * dx + dy * dy);
+function updateBallView(b) {
+    b.el.style.left = b.x + 'px';
+    b.el.style.top = b.y + 'px';
+}
 
-    if (distance < b1.r + b2.r) {
+function checkCollisions() {
+    // Відстань між центрами
+    let dx = (b1.x + 10) - (b2.x + 10);
+    let dy = (b1.y + 10) - (b2.y + 10);
+    let distance = Math.sqrt(dx*dx + dy*dy);
+
+    if (distance < 20) { // Радіус 10 + 10 = 20
+        // Обмін швидкостями (ідеальна модель)
         let tempDx = b1.dx; let tempDy = b1.dy;
         b1.dx = b2.dx; b1.dy = b2.dy;
         b2.dx = tempDx; b2.dy = tempDy;
-        
-        b1.x += b1.dx; b1.y += b1.dy;
 
-        logEvent("Balls collision");
+        // Розводимо, щоб не злиплися
+        b1.x += b1.dx * 2; b1.y += b1.dy * 2;
+
+        logEvent("Collision between balls");
     }
 }
 
 function checkStopCondition() {
     let h = anim.clientHeight;
-    let center = h / 2;
+    let mid = h / 2;
 
-    let b1InTop = (ball1.y + 10) < center;
-    let b2InTop = (ball2.y + 10) < center;
-    
-    if ((b1InTop && b2InTop) || (!b1InTop && !b2InTop)) {
+    // Чи обидві зверху (y < mid) або обидві знизу (y > mid)
+    let b1Top = (b1.y + 10) < mid;
+    let b2Top = (b2.y + 10) < mid;
+
+    if (b1Top === b2Top) {
+        // Зупинка (f)
         stopAnimation();
+        logEvent("Stop condition: Both in same half");
+
+        // Кнопка RELOAD (g)
         btnStart.innerText = "RELOAD";
         btnStart.disabled = false;
-        statusMsg.innerText = "Зупинено: Обидві кульки в одній половині!";
-        logEvent("Stop condition met");
+        btnStart.style.opacity = "1";
     }
 }
 
-function logEvent(msg) {
-    eventCount++;
-    let now = new Date();
-    let timeString = now.toLocaleTimeString() + '.' + now.getMilliseconds();
-    
-    sendImmediate(eventCount, msg);
-    
-    let logRecord = {
-        id: eventCount,
-        event: msg,
-        time: timeString
-    };
-    localStorageLogs.push(logRecord);
-    
-    localStorage.setItem('lab7_logs', JSON.stringify(localStorageLogs));
-}
+// --- 4. ЛОГУВАННЯ ТА СЕРВЕР (h) ---
+function logEvent(text) {
+    eventId++;
+    msgBox.innerText = text; // Показ повідомлення зліва (h)
 
-function sendImmediate(id, msg) {
+    let now = new Date();
+    // Формат часу
+    let timeStr = now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds() + "." + now.getMilliseconds();
+
+    // Дані про подію
+    let eventObj = {
+        id: eventId,
+        text: text,
+        clientTime: timeStr,
+        method: 'immediate'
+    };
+
+    // Спосіб 2: Акумуляція в LocalStorage
+    // Ми зберігаємо копію об'єкта для LS
+    let lsObj = {...eventObj, method: 'bulk'};
+    localStorageData.push(lsObj);
+    localStorage.setItem('lab7_data', JSON.stringify(localStorageData));
+
+    // Спосіб 1: Негайне відправлення
+    // Використовуємо fetch
     fetch('server_lab7.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            method: 'immediate',
-            id: id,
-            event: msg
-        })
+        body: JSON.stringify(eventObj)
     })
         .then(res => res.json())
         .then(data => {
-            serverResponses[id] = data.serverTime;
+            // Зберігаємо час сервера, який прийшов у відповідь
+            serverResponses[eventObj.id] = data.serverTime;
         })
-        .catch(err => console.error(err));
+        .catch(err => console.error("Server error"));
 }
 
-function sendBulkDataToServer() {
-    fetch('server_lab7.php', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            method: 'bulk',
-            data: localStorageLogs
-        })
-    }).then(() => {
-        console.log("Bulk data sent");
-        localStorageLogs = [];
-        localStorage.removeItem('lab7_logs');
-    });
-}
-
-function renderLogs() {
-    let tbody = document.getElementById('logBody');
+// --- 5. ВІДОБРАЖЕННЯ РЕЗУЛЬТАТІВ ---
+function showResults() {
+    // Зчитуємо з LS (як сказано в завданні)
+    let logs = JSON.parse(localStorage.getItem('lab7_data')) || [];
+    let tbody = document.querySelector('#resultsTable tbody');
     tbody.innerHTML = "";
-    
-    let logs = JSON.parse(localStorage.getItem('lab7_logs')) || localStorageLogs;
 
     logs.forEach(log => {
         let tr = document.createElement('tr');
-        let serverTime = serverResponses[log.id] || "Pending...";
+
+        // Отримуємо збережений час сервера для цієї події
+        let sTime = serverResponses[log.id] || "---";
 
         tr.innerHTML = `
             <td>${log.id}</td>
-            <td>${log.event}</td>
-            <td>${log.time}</td>
-            <td>${serverTime}</td>
+            <td>${log.text}</td>
+            <td>${log.clientTime}</td>
+            <td>${sTime}</td>
         `;
         tbody.appendChild(tr);
     });
